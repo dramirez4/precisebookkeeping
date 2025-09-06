@@ -24,6 +24,8 @@ pids
 
 # Coverage directory used by tools like istanbul
 coverage/
+.coverage*
+*.lcov
 
 # nyc test coverage
 .nyc_output
@@ -42,9 +44,6 @@ jspm_packages/
 
 # Yarn Integrity file
 .yarn-integrity
-
-# dotenv environment variables file
-.env
 
 # next.js build output
 .next
@@ -87,3 +86,17 @@ Thumbs.db
 # Build outputs
 dist/
 build/
+.dist/
+out/
+
+# Python (if needed)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Misc
+*.tmp
+*.bak
+*.orig
+*.rej

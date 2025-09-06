@@ -76,12 +76,13 @@ A modern, automated bookkeeping platform built for small to medium businesses. C
 4. **Start development**:
 
    ```bash
-   npm run dev
+   ./start-all.sh
    ```
 
 5. **Access the application**:
-   - Client Portal: http://localhost:3000
-   - API: http://localhost:3001
+   - Marketing Website (Main): http://localhost:3000
+   - Client Portal: http://localhost:3001
+   - Backend API: http://localhost:3002
 
 ## 🔧 Configuration
 
@@ -132,6 +133,7 @@ bookkeep/
 │   ├── services/        # API services
 │   └── styles/          # CSS styles
 ├── main.html            # Marketing website
+├── marketing-server.js  # Marketing website server
 └── README.md
 ```
 
