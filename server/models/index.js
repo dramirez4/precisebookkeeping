@@ -101,14 +101,14 @@ const Client = sequelize.define('Client', {
   }
 });
 
-// Bank Account model
+// Bank Account model (Enhanced for Plaid)
 const BankAccount = sequelize.define('BankAccount', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
-  clientId: {
+  client_id: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
@@ -116,44 +116,69 @@ const BankAccount = sequelize.define('BankAccount', {
       key: 'id'
     }
   },
-  bankName: {
+  plaid_item_id: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  plaid_access_token: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  plaid_account_id: {
     type: DataTypes.STRING,
     allowNull: false
   },
-  accountType: {
-    type: DataTypes.ENUM('checking', 'savings', 'credit_card', 'loan'),
-    allowNull: false
-  },
-  accountNumber: {
+  institution_id: {
     type: DataTypes.STRING,
     allowNull: false
   },
-  routingNumber: {
-    type: DataTypes.STRING
+  institution_name: {
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  plaidItemId: {
-    type: DataTypes.STRING
+  account_name: {
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  plaidAccountId: {
-    type: DataTypes.STRING
+  account_type: {
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  isActive: {
+  account_subtype: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  mask: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  is_active: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   },
-  lastSyncDate: {
-    type: DataTypes.DATE
+  last_sync: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  sync_status: {
+    type: DataTypes.ENUM('active', 'error', 'disconnected'),
+    defaultValue: 'active'
+  },
+  error_message: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 });
 
-// Transaction model
+// Transaction model (Enhanced for Plaid)
 const Transaction = sequelize.define('Transaction', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
-  clientId: {
+  client_id: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
@@ -161,7 +186,7 @@ const Transaction = sequelize.define('Transaction', {
       key: 'id'
     }
   },
-  bankAccountId: {
+  bank_account_id: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
@@ -169,43 +194,108 @@ const Transaction = sequelize.define('Transaction', {
       key: 'id'
     }
   },
-  quickbooksTransactionId: {
-    type: DataTypes.STRING
+  plaid_transaction_id: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
   },
-  date: {
-    type: DataTypes.DATE,
+  account_id: {
+    type: DataTypes.STRING,
     allowNull: false
   },
   amount: {
-    type: DataTypes.DECIMAL(12, 2),
+    type: DataTypes.DECIMAL(15, 2),
     allowNull: false
   },
-  description: {
-    type: DataTypes.TEXT
+  date: {
+    type: DataTypes.DATEONLY,
+    allowNull: false
+  },
+  datetime: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  merchant_name: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   category: {
-    type: DataTypes.STRING
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  category_id: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   subcategory: {
-    type: DataTypes.STRING
+    type: DataTypes.STRING,
+    allowNull: true
   },
-  account: {
-    type: DataTypes.STRING
+  account_owner: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
-  isReconciled: {
+  pending: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
-  isCategorized: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
+  pending_transaction_id: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
-  isAutomated: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
+  payment_meta: {
+    type: DataTypes.JSONB,
+    allowNull: true
+  },
+  location: {
+    type: DataTypes.JSONB,
+    allowNull: true
+  },
+  personal_finance_category: {
+    type: DataTypes.JSONB,
+    allowNull: true
+  },
+  // Custom categorization
+  custom_category: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  custom_subcategory: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   notes: {
-    type: DataTypes.TEXT
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  is_reviewed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  is_reconciled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  reconciled_date: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  // QuickBooks integration
+  quickbooks_id: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  quickbooks_synced: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  quickbooks_sync_date: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 });
 
@@ -306,14 +396,14 @@ const Report = sequelize.define('Report', {
 });
 
 // Define associations
-Client.hasMany(BankAccount, { foreignKey: 'clientId' });
-BankAccount.belongsTo(Client, { foreignKey: 'clientId' });
+Client.hasMany(BankAccount, { foreignKey: 'client_id' });
+BankAccount.belongsTo(Client, { foreignKey: 'client_id' });
 
-Client.hasMany(Transaction, { foreignKey: 'clientId' });
-Transaction.belongsTo(Client, { foreignKey: 'clientId' });
+Client.hasMany(Transaction, { foreignKey: 'client_id' });
+Transaction.belongsTo(Client, { foreignKey: 'client_id' });
 
-BankAccount.hasMany(Transaction, { foreignKey: 'bankAccountId' });
-Transaction.belongsTo(BankAccount, { foreignKey: 'bankAccountId' });
+BankAccount.hasMany(Transaction, { foreignKey: 'bank_account_id' });
+Transaction.belongsTo(BankAccount, { foreignKey: 'bank_account_id' });
 
 Client.hasMany(Document, { foreignKey: 'clientId' });
 Document.belongsTo(Client, { foreignKey: 'clientId' });

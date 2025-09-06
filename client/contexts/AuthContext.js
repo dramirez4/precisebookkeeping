@@ -19,8 +19,22 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token')
+    const storedUser = localStorage.getItem('user')
+    
     if (token) {
-      fetchUser()
+      // If we have stored user data, use it immediately
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser)
+          setUser(user)
+          setLoading(false)
+        } catch (error) {
+          console.error('AuthContext - Error parsing stored user:', error)
+          fetchUser()
+        }
+      } else {
+        fetchUser()
+      }
     } else {
       setLoading(false)
     }
@@ -31,6 +45,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/auth/me')
       setUser(response.data.user)
     } catch (error) {
+      console.error('AuthContext - Error fetching user:', error)
       localStorage.removeItem('token')
     } finally {
       setLoading(false)
@@ -43,6 +58,7 @@ export const AuthProvider = ({ children }) => {
       const { token, user } = response.data
       
       localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify(user))
       setUser(user)
       
       return { success: true }

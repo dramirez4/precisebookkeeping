@@ -17,7 +17,15 @@ app.use((req, res, next) => {
 
 // Serve the main marketing page
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'main.html'));
+  const filePath = path.join(__dirname, 'main.html');
+  console.log('Serving file:', filePath);
+  console.log('File exists:', require('fs').existsSync(filePath));
+  res.sendFile(filePath);
+});
+
+// Redirect login to client portal
+app.get('/login', (req, res) => {
+  res.redirect('http://localhost:3001/login');
 });
 
 app.listen(PORT, () => {

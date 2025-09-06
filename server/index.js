@@ -10,6 +10,8 @@ const quickbooksRoutes = require('./routes/quickbooks');
 const bankRoutes = require('./routes/bank');
 const reportsRoutes = require('./routes/reports');
 const documentsRoutes = require('./routes/documents');
+const plaidRoutes = require('./routes/plaid');
+const categorizationRoutes = require('./routes/categorization');
 
 const { sequelize } = require('./config/database');
 const { errorHandler } = require('./middleware/errorHandler');
@@ -52,6 +54,8 @@ app.use('/api/quickbooks', authenticateToken, quickbooksRoutes);
 app.use('/api/bank', authenticateToken, bankRoutes);
 app.use('/api/reports', authenticateToken, reportsRoutes);
 app.use('/api/documents', authenticateToken, documentsRoutes);
+app.use('/api/plaid', plaidRoutes);
+app.use('/api/categorization', authenticateToken, categorizationRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

@@ -1,254 +1,50 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from 'react-query'
 import api from '../services/api'
+import BankConnection from './BankConnection'
+import Transactions from './Transactions'
+import TransactionCategorizer from './TransactionCategorizer'
+import AdminDashboard from './AdminDashboard'
+import ClientDashboard from './ClientDashboard'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function SimpleDashboard() {
-  const [selectedClient, setSelectedClient] = useState(null)
+  const { user } = useAuth()
 
-  // Fetch clients
-  const { data: clientsData } = useQuery('clients', () => 
-    api.get('/clients').then(res => res.data)
-  )
+  console.log('SimpleDashboard - User data:', user)
+  console.log('SimpleDashboard - User role:', user?.role)
 
-  // Fetch transactions for selected client
-  const { data: transactionsData } = useQuery(
-    ['transactions', selectedClient?.id],
-    () => api.get(`/clients/${selectedClient.id}/transactions?limit=10`).then(res => res.data),
-    { enabled: !!selectedClient }
-  )
-
-  // Fetch recent documents
-  const { data: documentsData } = useQuery(
-    ['documents', selectedClient?.id],
-    () => api.get(`/clients/${selectedClient.id}/documents?limit=5`).then(res => res.data),
-    { enabled: !!selectedClient }
-  )
-
-  // Set first client as selected by default
-  useEffect(() => {
-    if (clientsData?.clients?.length > 0 && !selectedClient) {
-      setSelectedClient(clientsData.clients[0])
-    }
-  }, [clientsData, selectedClient])
-
-  if (!selectedClient) {
+  // Role-based rendering
+  if (!user) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">No clients found. Please contact support.</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
       </div>
     )
   }
 
-  const transactions = transactionsData?.transactions || []
-  const documents = documentsData?.documents || []
+  // Admin/Bookkeeper view - can manage multiple clients
+  if (user.role === 'admin' || user.role === 'bookkeeper') {
+    return <AdminDashboard />
+  }
 
-  // Calculate summary stats
-  const totalRevenue = transactions
-    .filter(t => t.amount > 0)
-    .reduce((sum, t) => sum + parseFloat(t.amount), 0)
+  // Client view - only sees their own data
+  if (user.role === 'client') {
+    return <ClientDashboard />
+  }
 
-  const totalExpenses = transactions
-    .filter(t => t.amount < 0)
-    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0)
-
-  const netIncome = totalRevenue - totalExpenses
-
+  // Fallback for unknown roles
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Dashboard
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Welcome back! Here's what's happening with {selectedClient.businessName}.
-          </p>
-        </div>
-        <div className="mt-4 flex md:mt-0 md:ml-4">
-          <select
-            value={selectedClient.id}
-            onChange={(e) => {
-              const client = clientsData.clients.find(c => c.id === e.target.value)
-              setSelectedClient(client)
-            }}
-            className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-          >
-            {clientsData?.clients?.map(client => (
-              <option key={client.id} value={client.id}>
-                {client.businessName}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <span className="text-2xl">📈</span>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    ${totalRevenue.toLocaleString()}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <span className="text-2xl">📉</span>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Expenses</dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    ${totalExpenses.toLocaleString()}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <span className="text-2xl">📊</span>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Net Income</dt>
-                  <dd className={`text-lg font-medium ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ${netIncome.toLocaleString()}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <span className="text-2xl">📄</span>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Documents</dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {documents.length}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Recent Transactions */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              Recent Transactions
-            </h3>
-            <div className="flow-root">
-              <ul className="-my-5 divide-y divide-gray-200">
-                {transactions.slice(0, 5).map((transaction) => (
-                  <li key={transaction.id} className="py-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <span className="text-2xl">💰</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {transaction.description || 'No description'}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {transaction.category || 'Uncategorized'}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0 text-right">
-                        <p className={`text-sm font-medium ${
-                          transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {transaction.amount > 0 ? '+' : ''}${parseFloat(transaction.amount).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(transaction.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="mt-6">
-              <a
-                href="/transactions"
-                className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                View all transactions
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Documents */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              Recent Documents
-            </h3>
-            <div className="flow-root">
-              <ul className="-my-5 divide-y divide-gray-200">
-                {documents.map((document) => (
-                  <li key={document.id} className="py-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <span className="text-2xl">📄</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {document.fileName}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {document.documentType} • {document.fileSize} bytes
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0 text-right">
-                        <p className="text-xs text-gray-500">
-                          {new Date(document.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="mt-6">
-              <a
-                href="/documents"
-                className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                View all documents
-              </a>
-            </div>
-          </div>
-        </div>
+    <div className="bg-white shadow rounded-lg p-6 text-center">
+      <div className="text-gray-500">
+        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Access Denied</h3>
+        <p className="mt-1 text-sm text-gray-500">Your account role is not recognized. Please contact support.</p>
       </div>
     </div>
   )

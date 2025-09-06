@@ -1,7 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
-const { Client, BankAccount, Transaction, Document, Report } = require('../models');
-const { requireRole } = require('../middleware/auth');
+const { Client, BankAccount, Transaction, Document, Report, User } = require('../models');
+const { requireRole, authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -21,6 +21,129 @@ const clientSchema = Joi.object({
   businessType: Joi.string().optional(),
   monthlyRevenue: Joi.number().min(0).optional(),
   serviceTier: Joi.string().valid('essential', 'professional', 'growth').default('essential')
+});
+
+// Client-specific routes (for clients to access their own data) - MUST come before /:id route
+
+// Get client's own profile
+router.get('/profile', authenticateToken, async (req, res, next) => {
+  try {
+    // For clients, get their own profile
+    if (req.user.role === 'client') {
+      // Find client by user email
+      const client = await Client.findOne({ 
+        where: { email: req.user.email },
+        attributes: { exclude: ['quickbooksAccessToken', 'quickbooksRefreshToken'] }
+      });
+      
+      if (!client) {
+        return res.status(404).json({ error: 'Client profile not found' });
+      }
+      
+      return res.json({ client });
+    }
+    
+    // For admin/bookkeeper, return their user profile
+    res.json({ 
+      client: {
+        id: req.user.id,
+        businessName: `${req.user.firstName} ${req.user.lastName}`,
+        contactName: `${req.user.firstName} ${req.user.lastName}`,
+        email: req.user.email,
+        status: req.user.isActive ? 'active' : 'inactive',
+        role: req.user.role
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get client's own transactions
+router.get('/transactions', authenticateToken, async (req, res, next) => {
+  try {
+    let clientId;
+    
+    if (req.user.role === 'client') {
+      // Find client by user email
+      const client = await Client.findOne({ where: { email: req.user.email } });
+      if (!client) {
+        return res.status(404).json({ error: 'Client profile not found' });
+      }
+      clientId = client.id;
+    } else {
+      // Admin/bookkeeper can specify clientId
+      clientId = req.query.clientId;
+      if (!clientId) {
+        return res.status(400).json({ error: 'Client ID required' });
+      }
+    }
+
+    const { page = 1, limit = 50, startDate, endDate, category } = req.query;
+    const offset = (page - 1) * limit;
+
+    const whereClause = { client_id: clientId };
+    if (startDate) whereClause.date = { [require('sequelize').Op.gte]: startDate };
+    if (endDate) whereClause.date = { ...whereClause.date, [require('sequelize').Op.lte]: endDate };
+    if (category) whereClause[require('sequelize').Op.or] = [
+      { category: category },
+      { custom_category: category }
+    ];
+
+    const { count, rows: transactions } = await Transaction.findAndCountAll({
+      where: whereClause,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['date', 'DESC']],
+      include: [{
+        model: BankAccount,
+        attributes: ['account_name', 'institution_name']
+      }]
+    });
+
+    res.json({
+      transactions,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get client's own bank accounts
+router.get('/bank-accounts', authenticateToken, async (req, res, next) => {
+  try {
+    let clientId;
+    
+    if (req.user.role === 'client') {
+      // Find client by user email
+      const client = await Client.findOne({ where: { email: req.user.email } });
+      if (!client) {
+        return res.status(404).json({ error: 'Client profile not found' });
+      }
+      clientId = client.id;
+    } else {
+      // Admin/bookkeeper can specify clientId
+      clientId = req.query.clientId;
+      if (!clientId) {
+        return res.status(400).json({ error: 'Client ID required' });
+      }
+    }
+
+    const bankAccounts = await BankAccount.findAll({
+      where: { client_id: clientId },
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({ bankAccounts });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Get all clients (admin/bookkeeper only)
@@ -55,8 +178,8 @@ router.get('/', requireRole(['admin', 'bookkeeper']), async (req, res, next) => 
   }
 });
 
-// Get single client
-router.get('/:id', async (req, res, next) => {
+// Get single client (admin/bookkeeper only)
+router.get('/:id', requireRole(['admin', 'bookkeeper']), async (req, res, next) => {
   try {
     const { id } = req.params;
     
