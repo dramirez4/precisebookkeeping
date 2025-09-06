@@ -12,6 +12,7 @@ const reportsRoutes = require('./routes/reports');
 const documentsRoutes = require('./routes/documents');
 const plaidRoutes = require('./routes/plaid');
 const categorizationRoutes = require('./routes/categorization');
+// const onboardingRoutes = require('./routes/onboarding');
 
 const { sequelize } = require('./config/database');
 const { errorHandler } = require('./middleware/errorHandler');
@@ -56,6 +57,7 @@ app.use('/api/reports', authenticateToken, reportsRoutes);
 app.use('/api/documents', authenticateToken, documentsRoutes);
 app.use('/api/plaid', plaidRoutes);
 app.use('/api/categorization', authenticateToken, categorizationRoutes);
+// app.use('/api/onboarding', onboardingRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

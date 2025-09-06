@@ -5,6 +5,7 @@ import api from '../services/api'
 export default function AdminDashboard() {
   const [selectedClient, setSelectedClient] = useState(null)
   const [activeTab, setActiveTab] = useState('clients')
+  const [onboardingData, setOnboardingData] = useState({})
   const queryClient = useQueryClient()
 
   // Fetch all clients
@@ -47,6 +48,66 @@ export default function AdminDashboard() {
   )
   
   const categorizationStats = categorizationStatsData?.stats || {}
+
+  // Collect onboarding data from localStorage for demo purposes
+  useEffect(() => {
+    const collectOnboardingData = () => {
+      const data = {}
+      clients.forEach(client => {
+        // Check if client has completed onboarding
+        const isCompleted = localStorage.getItem(`onboarding_completed_${client.id}`) === 'true'
+        
+        // Collect step data from localStorage (in a real app, this would come from the backend)
+        const step1Data = localStorage.getItem(`onboarding_step1_${client.id}`)
+        const step2Data = localStorage.getItem(`onboarding_step2_${client.id}`)
+        const step3Data = localStorage.getItem(`onboarding_step3_${client.id}`)
+        const step4Data = localStorage.getItem(`onboarding_step4_${client.id}`)
+        const paymentData = localStorage.getItem(`onboarding_payment_${client.id}`)
+        const step5Data = localStorage.getItem(`onboarding_step5_${client.id}`)
+        
+        // Also check for the actual client ID that completed onboarding
+        if (client.email === 'client@example.com') {
+          const actualClientId = 'fee7a89f-d431-4aa0-bf65-3c45046f2515';
+          const actualStep1Data = localStorage.getItem(`onboarding_step1_${actualClientId}`);
+          const actualStep2Data = localStorage.getItem(`onboarding_step2_${actualClientId}`);
+          const actualStep3Data = localStorage.getItem(`onboarding_step3_${actualClientId}`);
+          const actualStep4Data = localStorage.getItem(`onboarding_step4_${actualClientId}`);
+          const actualPaymentData = localStorage.getItem(`onboarding_payment_${actualClientId}`);
+          const actualStep5Data = localStorage.getItem(`onboarding_step5_${actualClientId}`);
+          const actualCompletion = localStorage.getItem(`onboarding_completed_${actualClientId}`);
+          
+          // Use the actual client ID data if it exists
+          if (actualStep1Data || actualStep2Data || actualStep3Data || actualStep4Data || actualPaymentData || actualStep5Data) {
+            data[client.id] = {
+              completed: actualCompletion === 'true',
+              step1: actualStep1Data ? JSON.parse(actualStep1Data) : null,
+              step2: actualStep2Data ? JSON.parse(actualStep2Data) : null,
+              step3: actualStep3Data ? JSON.parse(actualStep3Data) : null,
+              step4: actualStep4Data ? JSON.parse(actualStep4Data) : null,
+              payment: actualPaymentData ? JSON.parse(actualPaymentData) : null,
+              step5: actualStep5Data ? JSON.parse(actualStep5Data) : null
+            };
+            return; // Skip the normal data assignment
+          }
+        }
+        
+        data[client.id] = {
+          completed: isCompleted,
+          step1: step1Data ? JSON.parse(step1Data) : null,
+          step2: step2Data ? JSON.parse(step2Data) : null,
+          step3: step3Data ? JSON.parse(step3Data) : null,
+          step4: step4Data ? JSON.parse(step4Data) : null,
+          payment: paymentData ? JSON.parse(paymentData) : null,
+          step5: step5Data ? JSON.parse(step5Data) : null
+        }
+      })
+      setOnboardingData(data)
+    }
+    
+    if (clients.length > 0) {
+      collectOnboardingData()
+    }
+  }, [clients])
 
   const handleAutoCategorize = () => {
     if (selectedClient && window.confirm(`Auto-categorize all transactions for ${selectedClient.businessName}?`)) {
@@ -175,6 +236,16 @@ export default function AdminDashboard() {
                 }`}
               >
                 Banking
+              </button>
+              <button
+                onClick={() => setActiveTab('onboarding')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'onboarding'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Onboarding
               </button>
             </nav>
           </div>
@@ -353,6 +424,179 @@ export default function AdminDashboard() {
               <div className="text-center py-8 text-gray-500">
                 Banking management interface will be implemented here
               </div>
+            </div>
+          )}
+
+          {activeTab === 'onboarding' && (
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Onboarding Information</h3>
+              <p className="text-gray-600 mb-4">
+                View onboarding data for {selectedClient.businessName}
+              </p>
+              
+              {onboardingData[selectedClient.id] ? (
+                <div className="space-y-6">
+                  {/* Onboarding Status */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-gray-700">Status:</span>
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      onboardingData[selectedClient.id].completed 
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {onboardingData[selectedClient.id].completed ? 'Completed' : 'In Progress'}
+                    </span>
+                  </div>
+
+                  {/* Step 1: Business Information */}
+                  {onboardingData[selectedClient.id].step1 && (
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-900 mb-3">Step 1: Business Information</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-gray-700">Business Name:</span>
+                          <p className="text-gray-900">{onboardingData[selectedClient.id].step1.businessName}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">Business Type:</span>
+                          <p className="text-gray-900">{onboardingData[selectedClient.id].step1.businessType}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">Industry:</span>
+                          <p className="text-gray-900">{onboardingData[selectedClient.id].step1.industry}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">Phone:</span>
+                          <p className="text-gray-900">{onboardingData[selectedClient.id].step1.businessPhone}</p>
+                        </div>
+                        <div className="md:col-span-2">
+                          <span className="font-medium text-gray-700">Address:</span>
+                          <p className="text-gray-900">{onboardingData[selectedClient.id].step1.businessAddress}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Business Details & Plan */}
+                  {onboardingData[selectedClient.id].step2 && (
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-900 mb-3">Step 2: Business Details & Plan</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-gray-700">Monthly Revenue:</span>
+                          <p className="text-gray-900">${onboardingData[selectedClient.id].step2.expectedMonthlyRevenue}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">Employees:</span>
+                          <p className="text-gray-900">{onboardingData[selectedClient.id].step2.numberOfEmployees}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">Current System:</span>
+                          <p className="text-gray-900">{onboardingData[selectedClient.id].step2.currentBookkeepingSystem}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-700">Selected Plan:</span>
+                          <p className="text-gray-900 font-semibold text-blue-600">
+                            {onboardingData[selectedClient.id].step2.subscriptionPlan?.toUpperCase() || 'Not Selected'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 4: Bank Account Information */}
+                  {onboardingData[selectedClient.id].step4 && (
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-900 mb-3">Step 4: Bank Account Information</h4>
+                      {onboardingData[selectedClient.id].step4.bankAccounts?.map((account, index) => (
+                        <div key={index} className="mb-4 p-3 bg-gray-50 rounded">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium text-gray-700">Bank:</span>
+                              <p className="text-gray-900">{account.bankName}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Account Type:</span>
+                              <p className="text-gray-900">{account.accountType}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Account Number:</span>
+                              <p className="text-gray-900">****{account.accountNumber}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Routing Number:</span>
+                              <p className="text-gray-900">{account.routingNumber}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Payment Information */}
+                  {onboardingData[selectedClient.id].payment && (
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-900 mb-3">Payment Information</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-gray-700">Payment Method:</span>
+                          <p className="text-gray-900 capitalize">
+                            {onboardingData[selectedClient.id].payment.paymentMethod?.replace('_', ' ')}
+                          </p>
+                        </div>
+                        
+                        {onboardingData[selectedClient.id].payment.paymentMethod === 'credit_card' && (
+                          <>
+                            <div>
+                              <span className="font-medium text-gray-700">Card Number:</span>
+                              <p className="text-gray-900">**** **** **** {onboardingData[selectedClient.id].payment.cardNumber?.slice(-4)}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Expiry:</span>
+                              <p className="text-gray-900">{onboardingData[selectedClient.id].payment.expiryDate}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Cardholder:</span>
+                              <p className="text-gray-900">{onboardingData[selectedClient.id].payment.cardholderName}</p>
+                            </div>
+                            <div className="md:col-span-2">
+                              <span className="font-medium text-gray-700">Billing Address:</span>
+                              <p className="text-gray-900">
+                                {onboardingData[selectedClient.id].payment.billingAddress}, {onboardingData[selectedClient.id].payment.billingCity}, {onboardingData[selectedClient.id].payment.billingState} {onboardingData[selectedClient.id].payment.billingZip}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                        
+                        {onboardingData[selectedClient.id].payment.paymentMethod === 'ach' && (
+                          <>
+                            <div>
+                              <span className="font-medium text-gray-700">Account Holder:</span>
+                              <p className="text-gray-900">{onboardingData[selectedClient.id].payment.bankAccountHolderName}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Account Number:</span>
+                              <p className="text-gray-900">****{onboardingData[selectedClient.id].payment.bankAccountNumber?.slice(-4)}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Routing Number:</span>
+                              <p className="text-gray-900">{onboardingData[selectedClient.id].payment.bankRoutingNumber}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Account Type:</span>
+                              <p className="text-gray-900 capitalize">{onboardingData[selectedClient.id].payment.bankAccountType}</p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No onboarding data available for this client
+                </div>
+              )}
             </div>
           )}
         </>

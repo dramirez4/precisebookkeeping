@@ -1,6 +1,10 @@
 const { sequelize } = require('../config/database');
 const { DataTypes } = require('sequelize');
 
+// Import onboarding models (commented out for now)
+// const ClientOnboarding = require('./ClientOnboarding')(sequelize);
+// const OnboardingDocument = require('./OnboardingDocument')(sequelize);
+
 // User model (for admin/staff)
 const User = sequelize.define('User', {
   id: {
@@ -411,6 +415,19 @@ Document.belongsTo(Client, { foreignKey: 'clientId' });
 Client.hasMany(Report, { foreignKey: 'clientId' });
 Report.belongsTo(Client, { foreignKey: 'clientId' });
 
+// Onboarding associations (commented out for now)
+// User.hasMany(ClientOnboarding, { foreignKey: 'userId' });
+// ClientOnboarding.belongsTo(User, { foreignKey: 'userId' });
+
+// User.hasMany(ClientOnboarding, { foreignKey: 'assignedBookkeeper' });
+// ClientOnboarding.belongsTo(User, { foreignKey: 'assignedBookkeeper' });
+
+// ClientOnboarding.hasMany(OnboardingDocument, { foreignKey: 'onboardingId' });
+// OnboardingDocument.belongsTo(ClientOnboarding, { foreignKey: 'onboardingId' });
+
+// User.hasMany(OnboardingDocument, { foreignKey: 'uploadedBy' });
+// OnboardingDocument.belongsTo(User, { foreignKey: 'uploadedBy' });
+
 module.exports = {
   User,
   Client,
@@ -418,5 +435,7 @@ module.exports = {
   Transaction,
   Document,
   Report,
+  // ClientOnboarding,
+  // OnboardingDocument,
   sequelize
 };
